@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
+	"github.com/yockii/ruomu-core/config"
 	"github.com/yockii/ruomu-core/database"
 	"github.com/yockii/ruomu-core/server"
 	"github.com/yockii/ruomu-core/shared"
@@ -93,6 +94,8 @@ func (m *Manager) RegisterModule(module *model.Module) {
 	for _, setting := range settings {
 		params[setting.Code] = setting.Value
 	}
+	params["logger.level"] = config.GetString("logger.level")
+
 	err = instance.Initial(params)
 	if err != nil {
 		logrus.Errorln(err)

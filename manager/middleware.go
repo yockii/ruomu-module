@@ -58,7 +58,7 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 
 			// 判断是否有权限 1、读取用户的权限信息 2、判断是否有权限
 			// 获取用户角色
-			roleIds, _ := redis.Strings(conn.Do("GET", shared.RedisKeyUserRoles+uid))
+			roleIds, _ := redis.Strings(conn.Do("SMEMBERS", shared.RedisKeyUserRoles+uid))
 			if len(roleIds) == 0 {
 				callReq := map[string]interface{}{
 					"userId": uid,
@@ -98,49 +98,52 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 				// 检查角色ID列表对应的权限信息中是否有对应的code
 				for _, id := range roleIds {
 					roleId := id
-					codes, _ := redis.Strings(conn.Do("GET", shared.RedisKeyRoleResourceCode+roleId))
-					if len(codes) == 0 {
-						// 不存在，从注入点获取
-						callReq := map[string]interface{}{
-							"roleId": roleId,
-						}
-						reqBs, _ := json.Marshal(callReq)
+					if roleId == shared.SuperAdmin {
+						passAuthorize = true
+					} else {
+						codes, _ := redis.Strings(conn.Do("GET", shared.RedisKeyRoleResourceCode+roleId))
+						if len(codes) == 0 {
+							// 不存在，从注入点获取
+							callReq := map[string]interface{}{
+								"roleId": roleId,
+							}
+							reqBs, _ := json.Marshal(callReq)
 
-						for moduleName, injectCodes := range m.moduleInjectCodes {
-							for _, code := range injectCodes {
-								if code == shared.InjectCodeAuthorizationInfoByRoleId {
-									bs, err := m.moduleExecMap[moduleName].InjectCall(shared.InjectCodeAuthorizationInfoByRoleId, nil, reqBs)
-									if err != nil {
-										logrus.Errorln(err)
-										continue
+							for moduleName, injectCodes := range m.moduleInjectCodes {
+								for _, code := range injectCodes {
+									if code == shared.InjectCodeAuthorizationInfoByRoleId {
+										bs, err := m.moduleExecMap[moduleName].InjectCall(shared.InjectCodeAuthorizationInfoByRoleId, nil, reqBs)
+										if err != nil {
+											logrus.Errorln(err)
+											continue
+										}
+										ai := new(shared.AuthorizationInfo)
+										_ = json.Unmarshal(bs, ai)
+										codes = append(codes, ai.ResourceCodes...)
+										break
 									}
-									ai := new(shared.AuthorizationInfo)
-									_ = json.Unmarshal(bs, ai)
-									codes = append(codes, ai.ResourceCodes...)
-									break
 								}
 							}
+							for _, c := range codes {
+								code := c
+								conn.Do("SADD", shared.RedisKeyRoleResourceCode+roleId, code)
+							}
 						}
+
+						// 增加有效期
+						conn.Do("EXPIRE", shared.RedisKeyRoleResourceCode+roleId, 3*24*60*60)
+
 						for _, c := range codes {
 							code := c
-							conn.Do("SADD", shared.RedisKeyRoleResourceCode+roleId, code)
+							if code == injectInfo.AuthorizationCode {
+								passAuthorize = true
+								break
+							} else if strings.HasPrefix(injectInfo.AuthorizationCode, code+":") {
+								passAuthorize = true
+								break
+							}
 						}
 					}
-
-					// 增加有效期
-					conn.Do("EXPIRE", shared.RedisKeyRoleResourceCode+roleId, 3*24*60*60)
-
-					for _, c := range codes {
-						code := c
-						if code == injectInfo.AuthorizationCode {
-							passAuthorize = true
-							break
-						} else if strings.HasPrefix(injectInfo.AuthorizationCode, code+":") {
-							passAuthorize = true
-							break
-						}
-					}
-
 					if passAuthorize {
 						break
 					}
