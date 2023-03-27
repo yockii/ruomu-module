@@ -18,7 +18,7 @@ import (
 
 func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.Handler {
 	authorizationCode := strings.ToLower(injectInfo.AuthorizationCode)
-	if authorizationCode == "" || authorizationCode == "anno" {
+	if authorizationCode == "" || authorizationCode == "anon" {
 		return func(ctx *fiber.Ctx) error {
 			return ctx.Next()
 		}
