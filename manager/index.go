@@ -70,7 +70,7 @@ func (m *Manager) RegisterModule(module *model.Module) {
 	}
 	defer func() {
 		if err != nil {
-			cp.Close()
+			_ = cp.Close()
 		}
 	}()
 	var raw interface{}
@@ -86,11 +86,18 @@ func (m *Manager) RegisterModule(module *model.Module) {
 
 	// 查询模块参数
 	var settings []*model.ModuleSettings
-	if err = database.DB.Find(&settings, &model.ModuleSettings{ModuleId: module.Id}); err != nil {
+
+	if err = database.DB.Find(&settings, &model.ModuleSettings{ModuleID: module.ID}).Error; err != nil {
 		logrus.Errorln(err)
 		return
 	}
 	var params = make(map[string]string)
+
+	// 注入的参数继承主程序的参数
+	for _, k := range config.DefaultInstance.AllKeys() {
+		params[k] = config.GetString(k)
+	}
+
 	for _, setting := range settings {
 		params[setting.Code] = setting.Value
 	}
@@ -107,8 +114,8 @@ func (m *Manager) RegisterModule(module *model.Module) {
 	// 注入http请求
 	var injects []*model.ModuleInjectInfo
 	if err = database.DB.Find(&injects, &model.ModuleInjectInfo{
-		ModuleId: module.Id,
-	}); err != nil {
+		ModuleID: module.ID,
+	}).Error; err != nil {
 		logrus.Errorln(err)
 		return
 	}
@@ -210,6 +217,11 @@ func (m *Manager) UnregisterModule(name string) {
 // RegisterModule 注入模块
 func RegisterModule(module *model.Module) {
 	defaultManager.RegisterModule(module)
+}
+
+// UnregisterModule 注销模块
+func UnregisterModule(name string) {
+	defaultManager.UnregisterModule(name)
 }
 
 func Destroy() {

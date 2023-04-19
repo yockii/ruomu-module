@@ -13,7 +13,7 @@ func Initial() (err error) {
 	syncModels()
 
 	var modules []*model.Module
-	err = database.DB.Find(&modules, &model.Module{Status: 1})
+	err = database.DB.Find(&modules, &model.Module{Status: 1}).Error
 	if err != nil {
 		logger.Errorln(err)
 		return
@@ -33,8 +33,13 @@ func Initial() (err error) {
 	return
 }
 
+// Destroy 销毁模块管理
+func Destroy() {
+	manager.Destroy()
+}
+
 func syncModels() {
-	database.DB.Sync2(
+	_ = database.AutoMigrate(
 		model.Module{},
 		model.ModuleDependency{},
 		model.ModuleInjectInfo{},
