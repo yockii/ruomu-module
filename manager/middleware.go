@@ -2,13 +2,14 @@ package manager
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/jwt/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gomodule/redigo/redis"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/yockii/ruomu-core/cache"
 	"github.com/yockii/ruomu-core/config"
 	"github.com/yockii/ruomu-core/shared"
@@ -44,11 +45,16 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 			tenantId, hasTenantId := claims[shared.JwtClaimTenantId].(string)
 
 			conn := cache.Get()
-			defer conn.Close()
+			defer func(conn redis.Conn) {
+				err := conn.Close()
+				if err != nil {
+					log.Errorln(err)
+				}
+			}(conn)
 			cachedUid, err := redis.String(conn.Do("GET", shared.RedisSessionIdKey+sid))
 			if err != nil {
-				if err != redis.ErrNil {
-					logrus.Errorln(err)
+				if !errors.Is(err, redis.ErrNil) {
+					log.Errorln(err)
 				}
 				return c.Status(fiber.StatusUnauthorized).SendString("token信息已失效")
 			}
@@ -65,14 +71,13 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 				}
 				reqBs, _ := json.Marshal(callReq)
 
-				var roleIds []string
 				// 调用注入点获取用户角色信息
 				for moduleName, injectCodes := range m.moduleInjectCodes {
 					for _, code := range injectCodes {
 						if code == shared.InjectCodeAuthorizationInfoByRoleId {
 							bs, err := m.moduleExecMap[moduleName].InjectCall(shared.InjectCodeAuthorizationInfoByUserId, nil, reqBs)
 							if err != nil {
-								logrus.Errorln(err)
+								log.Errorln(err)
 								continue
 							}
 							ai := new(shared.AuthorizationInfo)
@@ -85,11 +90,11 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 				// 得到所有角色id列表，放入缓存
 				for _, id := range roleIds {
 					roleId := id
-					conn.Do("SADD", shared.RedisKeyUserRoles+uid, roleId)
+					_, _ = conn.Do("SADD", shared.RedisKeyUserRoles+uid, roleId)
 				}
 			}
 			// 设定有效期
-			conn.Do("EXPIRE", shared.RedisKeyUserRoles+uid, 3*24*60*60)
+			_, _ = conn.Do("EXPIRE", shared.RedisKeyUserRoles+uid, 3*24*60*60)
 
 			passAuthorize := false
 			if authorizationCode == "user" {
@@ -114,7 +119,7 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 									if code == shared.InjectCodeAuthorizationInfoByRoleId {
 										bs, err := m.moduleExecMap[moduleName].InjectCall(shared.InjectCodeAuthorizationInfoByRoleId, nil, reqBs)
 										if err != nil {
-											logrus.Errorln(err)
+											log.Errorln(err)
 											continue
 										}
 										ai := new(shared.AuthorizationInfo)
@@ -124,17 +129,17 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 									}
 								}
 							}
-							for _, c := range codes {
-								code := c
-								conn.Do("SADD", shared.RedisKeyRoleResourceCode+roleId, code)
+							for _, co := range codes {
+								code := co
+								_, _ = conn.Do("SADD", shared.RedisKeyRoleResourceCode+roleId, code)
 							}
 						}
 
 						// 增加有效期
-						conn.Do("EXPIRE", shared.RedisKeyRoleResourceCode+roleId, 3*24*60*60)
+						_, _ = conn.Do("EXPIRE", shared.RedisKeyRoleResourceCode+roleId, 3*24*60*60)
 
-						for _, c := range codes {
-							code := c
+						for _, co := range codes {
+							code := co
 							if code == injectInfo.AuthorizationCode {
 								passAuthorize = true
 								break
