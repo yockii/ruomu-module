@@ -152,7 +152,21 @@ func (m *Manager) handleGet(moduleName string, code string) fiber.Handler {
 			})
 			v, _ := json.Marshal(ps)
 
-			result, err := moduleExec.InjectCall(code, ctx.GetReqHeaders(), v)
+			headers := ctx.GetReqHeaders()
+			if uidInterface := ctx.Locals(shared.JwtClaimUserId); uidInterface != nil {
+				uid, ok := uidInterface.(string)
+				if ok {
+					headers[shared.JwtClaimUserId] = []string{uid}
+				}
+			}
+			if tenantIdInterface := ctx.Locals(shared.JwtClaimTenantId); tenantIdInterface != nil {
+				tenantId, ok := tenantIdInterface.(string)
+				if ok {
+					headers[shared.JwtClaimTenantId] = []string{tenantId}
+				}
+			}
+
+			result, err := moduleExec.InjectCall(code, headers, v)
 			if err != nil {
 				logrus.Errorln(err)
 				return ctx.JSON(&server.CommonResponse{
