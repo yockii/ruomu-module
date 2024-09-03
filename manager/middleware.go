@@ -5,9 +5,10 @@ import (
 	"errors"
 	"strings"
 
+	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/jwt/v2"
-	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
 	"github.com/yockii/ruomu-core/cache"
@@ -26,10 +27,12 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 	}
 
 	return jwtware.New(jwtware.Config{
-		SigningKey:    []byte(shared.JwtSecret),
-		ContextKey:    "jwt-subject",
-		SigningMethod: "HS256",
-		TokenLookup:   "header:Authorization,cookie:token",
+		SigningKey: jwtware.SigningKey{
+			JWTAlg: jwtware.HS256,
+			Key:    []byte(shared.JwtSecret),
+		},
+		ContextKey:  "jwt-subject",
+		TokenLookup: "header:Authorization,cookie:token",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err.Error() == "Missing or malformed JWT" {
 				return c.Status(fiber.StatusBadRequest).SendString("无效的token信息")

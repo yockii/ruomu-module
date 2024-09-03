@@ -96,7 +96,7 @@ func (s *moduleService) Detail(id uint64) (*domain.Module, error) {
 	return result, nil
 }
 
-// Instance 仅获取mudule本身
+// Instance 仅获取module本身
 func (s *moduleService) Instance(id uint64) (*model.Module, error) {
 	module := new(model.Module)
 	if err := database.DB.Where("id = ?", id).First(module).Error; err != nil {
