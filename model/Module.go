@@ -26,10 +26,10 @@ func (_ ModuleDependency) TableComment() string {
 type ModuleInjectInfo struct {
 	ID                uint64 `json:"id,omitempty,string" gorm:"primaryKey"`
 	ModuleID          uint64 `json:"moduleId,omitempty,string" gorm:"comment:模块ID"`
-	Name              string `json:"name,omitempty" gorm:"comment:注入的名称"`                                                           // 名称
-	Type              int    `json:"type,omitempty" gorm:"comment:类型  1-http_get, 2-http_post, 3-http_put, 4-http_delete, 51-hook"` // 类型  1-http_get, 2-http_post, 3-http_put, 4-http_delete, 51-hook
-	InjectCode        string `json:"injectCode,omitempty" gorm:"comment:注入点代码，http请求路径或定义的注入点"`                                     // 注入点（http请求路径或注入点代码）
-	AuthorizationCode string `json:"authorizationCode,omitempty" gorm:"comment:授权代码 anon或空表示不需要权限 user-需要登录 其他-需要具体对应的资源权限"`        // 权限代码 特殊用例：anno或空-不需要权限  user-需要登录 其他-需要具体对应的资源权限
+	Name              string `json:"name,omitempty" gorm:"comment:注入的名称"`                                                                                                                   // 名称
+	Type              int    `json:"type,omitempty" gorm:"comment:类型  1-json_get, 2-json_post, 3-json_put, 4-json_delete, 11-html_get, 12-html_post, 13-html_put, 14-html_delete, 51-hook"` // 类型  1-http_get, 2-http_post, 3-http_put, 4-http_delete, 51-hook
+	InjectCode        string `json:"injectCode,omitempty" gorm:"comment:注入点代码，http请求路径或定义的注入点"`                                                                                             // 注入点（http请求路径或注入点代码）
+	AuthorizationCode string `json:"authorizationCode,omitempty" gorm:"comment:授权代码 anon或空表示不需要权限 user-需要登录 其他-需要具体对应的资源权限"`                                                                // 权限代码 特殊用例：anno或空-不需要权限  user-需要登录 其他-需要具体对应的资源权限
 }
 
 func (_ ModuleInjectInfo) TableComment() string {

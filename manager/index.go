@@ -123,13 +123,21 @@ func (m *Manager) RegisterModule(module *model.Module) {
 	for _, inject := range injects {
 		switch inject.Type {
 		case 1:
-			server.Get(inject.InjectCode, m.checkAuthorization(inject), m.handleGet(moduleName, inject.InjectCode))
+			server.Get(inject.InjectCode, m.checkAuthorization(inject), m.handleJsonGet(moduleName, inject.InjectCode))
 		case 2:
-			server.Post(inject.InjectCode, m.checkAuthorization(inject), m.handlePost(moduleName, inject.InjectCode))
+			server.Post(inject.InjectCode, m.checkAuthorization(inject), m.handleJsonPost(moduleName, inject.InjectCode))
 		case 3:
-			server.Put(inject.InjectCode, m.checkAuthorization(inject), m.handlePost(moduleName, inject.InjectCode))
+			server.Put(inject.InjectCode, m.checkAuthorization(inject), m.handleJsonPost(moduleName, inject.InjectCode))
 		case 4:
-			server.Delete(inject.InjectCode, m.checkAuthorization(inject), m.handleGet(moduleName, inject.InjectCode))
+			server.Delete(inject.InjectCode, m.checkAuthorization(inject), m.handleJsonGet(moduleName, inject.InjectCode))
+		case 11:
+			fallthrough
+		case 14:
+			server.Get(inject.InjectCode, m.checkAuthorization(inject), m.handleHtmlGet(moduleName, inject.InjectCode))
+		case 12:
+			fallthrough
+		case 13:
+			server.Post(inject.InjectCode, m.checkAuthorization(inject), m.handleHtmlPost(moduleName, inject.InjectCode))
 		}
 		logrus.Infoln("模块【"+moduleName+"】成功注入HTTP请求:", inject.InjectCode)
 		injectCodes = append(injectCodes, inject.InjectCode)
@@ -142,7 +150,65 @@ func (m *Manager) RegisterModule(module *model.Module) {
 	logrus.Info("模块", moduleName, "初始化完毕")
 }
 
-func (m *Manager) handleGet(moduleName string, code string) fiber.Handler {
+func (m *Manager) handleHtmlGet(moduleName string, code string) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		moduleExec, has := m.moduleExecMap[moduleName]
+		if has {
+			ps := ctx.AllParams()
+			ctx.Context().QueryArgs().VisitAll(func(key, value []byte) {
+				ps[string(key)] = string(value)
+			})
+			v, _ := json.Marshal(ps)
+
+			headers := ctx.GetReqHeaders()
+			if uidInterface := ctx.Locals(shared.JwtClaimUserId); uidInterface != nil {
+				uid, ok := uidInterface.(string)
+				if ok {
+					headers[shared.JwtClaimUserId] = []string{uid}
+				}
+			}
+			if tenantIdInterface := ctx.Locals(shared.JwtClaimTenantId); tenantIdInterface != nil {
+				tenantId, ok := tenantIdInterface.(string)
+				if ok {
+					headers[shared.JwtClaimTenantId] = []string{tenantId}
+				}
+			}
+
+			result, err := moduleExec.InjectCall(code, headers, v)
+			if err != nil {
+				logrus.Errorln(err)
+				return ctx.JSON(&server.CommonResponse{
+					Code: server.ResponseCodeUnknownError,
+					Msg:  err.Error(),
+				})
+			}
+			ctx.Response().Header.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+			return ctx.Send(result)
+		}
+		return ctx.SendString("Not Found")
+	}
+}
+func (m *Manager) handleHtmlPost(moduleName string, code string) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		moduleExec, has := m.moduleExecMap[moduleName]
+		if has {
+			v := ctx.Body()
+			result, err := moduleExec.InjectCall(code, ctx.GetReqHeaders(), v)
+			if err != nil {
+				logrus.Errorln(err)
+				return ctx.JSON(&server.CommonResponse{
+					Code: server.ResponseCodeUnknownError,
+					Msg:  err.Error(),
+				})
+			}
+			ctx.Response().Header.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+			return ctx.Send(result)
+		}
+		return ctx.SendString("Not Found")
+	}
+}
+
+func (m *Manager) handleJsonGet(moduleName string, code string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		moduleExec, has := m.moduleExecMap[moduleName]
 		if has {
@@ -184,7 +250,7 @@ func (m *Manager) handleGet(moduleName string, code string) fiber.Handler {
 	}
 }
 
-func (m *Manager) handlePost(moduleName string, code string) fiber.Handler {
+func (m *Manager) handleJsonPost(moduleName string, code string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		moduleExec, has := m.moduleExecMap[moduleName]
 		if has {
