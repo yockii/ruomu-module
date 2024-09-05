@@ -135,8 +135,8 @@ github.com/valyala/fasthttp v1.51.0 h1:8b30A5JlZ6C7AS81RsWjYMQmrZG6feChmgAolCl1S
 github.com/valyala/fasthttp v1.51.0/go.mod h1:oI2XroL+lI7vdXyYoQk03bXBThfFl2cVdIA3Xl7cH8g=
 github.com/valyala/tcplisten v1.0.0 h1:rBHj/Xf+E1tRGZyWIWwJDiRY0zc1Js+CV5DqwacVSA8=
 github.com/valyala/tcplisten v1.0.0/go.mod h1:T0xQ8SeCZGxckz9qRXTfG43PvQ/mcWh7FwZEA7Ioqkc=
-github.com/yockii/ruomu-core v0.1.1 h1:hMQSGYkzmb1zvPXsKX1u8xd28OsLVI/VuRRfb3JL27c=
-github.com/yockii/ruomu-core v0.1.1/go.mod h1:/J5J/b1yckxdWJmOHcg805r82AiJD+ugdkaS76HOTL4=
+github.com/yockii/ruomu-core v0.1.2 h1:nVddXSNMjc/3AsMsXCeQiDkZKF5JNJtQTxZZenWN3cU=
+github.com/yockii/ruomu-core v0.1.2/go.mod h1:TL776NIrpayk6bda7HhAcZA04IfdZVF32U9RXmyt2Iw=
 github.com/yockii/snowflake_ext v0.1.0 h1:OGd10s8xeUuNf7e2QvnS2+zqyzo5n9dLkVft5Qn8jT0=
 github.com/yockii/snowflake_ext v0.1.0/go.mod h1:QKkFgINVDidfwYv3F5gAA+K4dfbOtcnzeHessrV5boc=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=

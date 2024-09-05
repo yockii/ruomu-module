@@ -1,6 +1,6 @@
 module github.com/yockii/ruomu-module
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/gofiber/contrib/jwt v1.0.10
@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/yockii/ruomu-core v0.1.1
+	github.com/yockii/ruomu-core v0.1.2
 	gorm.io/gorm v1.25.11
 )
 
