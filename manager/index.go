@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hashicorp/go-hclog"
@@ -45,10 +46,21 @@ func (m *Manager) RegisterModule(module *model.Module) {
 
 	var err error
 	// 加载模块
+	args := strings.Fields(module.Cmd)
+	if len(args) == 0 {
+		logrus.Errorln("模块", moduleName, "启动命令为空，无法启动")
+		return
+	}
+	cmd := args[0]
+	var cmdArgs []string
+	if len(args) > 1 {
+		cmdArgs = args[1:]
+	}
+
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  shared.Handshake,
 		Plugins:          m.pluginMap,
-		Cmd:              exec.Command(module.Cmd),
+		Cmd:              exec.Command(cmd, cmdArgs...),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   moduleName,
