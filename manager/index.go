@@ -307,3 +307,9 @@ func UnregisterModule(name string) {
 func Destroy() {
 	defaultManager.Destroy()
 }
+
+func CheckAuthorizationMiddleware(code string) fiber.Handler {
+	return defaultManager.checkAuthorization(&model.ModuleInjectInfo{
+		AuthorizationCode: code,
+	})
+}
