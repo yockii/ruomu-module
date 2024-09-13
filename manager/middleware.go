@@ -33,6 +33,7 @@ func (m *Manager) checkAuthorization(injectInfo *model.ModuleInjectInfo) fiber.H
 		},
 		ContextKey:  "jwt-subject",
 		TokenLookup: "header:Authorization,cookie:token",
+		AuthScheme:  "Bearer",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err.Error() == "Missing or malformed JWT" {
 				return c.Status(fiber.StatusBadRequest).SendString("无效的token信息")
